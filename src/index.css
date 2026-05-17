@@ -1,0 +1,277 @@
+/* ============================================================
+   CONFIGURACIÓN DE FUENTES - RUTA ABSOLUTA PUBLIC CORREGIDA
+   ============================================================ */
+
+/* 1. SuperBubble */
+@font-face {
+  font-family: 'SuperBubble';
+  src: url('/fonts/Super Bubble.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 2. Magic Wand (Corregido error de doble barra de ruta) */
+@font-face {
+  font-family: 'MagicWandCustom';
+  src: url('/fonts/Magic Wand.otf') format('opentype'),
+       url('/fonts/Magic Wand.otf.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* --- CLASES MAESTRAS --- */
+
+.texto-bubble {
+  font-family: 'SuperBubble', sans-serif !important;
+  color: white; 
+  text-transform: uppercase;
+  /* Efecto de contorno grueso mediante múltiples sombras */
+  text-shadow: 
+    -3px -3px 0 #1e293b,   
+     3px -3px 0 #1e293b,
+    -3px  3px 0 #1e293b,
+     3px  3px 0 #1e293b,
+     6px  6px 0 rgba(0,0,0,0.2); 
+  letter-spacing: 2px;
+}
+
+.texto-magic {
+  font-family: 'MagicWandCustom', cursive !important;
+  color: #1e293b !important;
+  text-transform: none !important;
+  font-size: 3.5rem !important; 
+  line-height: 1 !important;
+  text-shadow: none !important;
+  display: block !important;
+}
+
+/* ============================================================
+   ESTILOS GLOBALES - ABRILVERSO THEME RESPONSIVO
+   ============================================================ */
+
+:root {
+  /* Nuevas Variables AbrlVerso */
+  --abrl-naranja: #FF5722;      /* Naranja del logo */
+  --abrl-teal: #1A3C40;         /* Teal/Azul oscuro de la sudadera */
+  --abrl-fondo: #f8f9fa;        /* Gris muy claro para descanso visual */
+  --abrl-blanco: #ffffff;
+  --abrl-texto: #2D3436;
+
+  /* Variables Originales (Mantenidas) */
+  --text: #6b6375;
+  --text-h: var(--abrl-teal);   /* Ajustado al color de marca */
+  --bg: var(--abrl-blanco);
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: var(--abrl-naranja); /* Ajustado al naranja de marca */
+  --accent-bg: rgba(255, 87, 34, 0.1);
+  --accent-border: rgba(255, 87, 34, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* --- BREAKPOINTS DE ESCALADO DE FUENTE MULTIPLATAFORMA --- */
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+  @media (max-width: 576px) {
+    font-size: 15px; /* Adaptación del rem para Smartphones y visualización táctil */
+  }
+  @media (min-width: 1920px) {
+    font-size: 21px; /* Escalado para Smart TV Full HD (Optimiza legibilidad a distancia) */
+  }
+  @media (min-width: 2560px) {
+    font-size: 25px; /* Escalado avanzado para Smart TV 4K Ultra HD */
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #FF7043; /* Naranja más claro para modo oscuro */
+    --accent-bg: rgba(255, 112, 67, 0.15);
+    --accent-border: rgba(255, 112, 67, 0.5);
+    --social-bg: rgba(47, 48, 58, 0.5);
+    --shadow: rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  }
+}
+
+/* --- MEJORA: RESETEO PARA ANCHO TOTAL --- */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden; 
+  background-color: var(--bg);
+}
+
+/* --- MEJORA: #ROOT AHORA ES DINÁMICO --- */
+#root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  text-align: center;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* Limitador de desbordamiento horizontal para Smart TVs y pantallas Ultra-Wide */
+.container-full-width {
+  width: 100% !important;
+  max-width: 1800px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+}
+
+/* Tipografía de Títulos */
+h1, h2, h3 {
+  font-family: var(--heading);
+  color: var(--text-h);
+  font-weight: 800;
+}
+
+h1 {
+  font-size: 3.1rem;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+  @media (max-width: 1024px) {
+    font-size: 2.2rem;
+    margin: 20px 0;
+  }
+}
+
+h2 {
+  font-size: 1.35rem;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 1.1rem;
+  }
+}
+
+p {
+  margin: 0;
+}
+
+code, .counter {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
+}
+
+/* ============================================================
+   BOTONES Y COMPONENTES PERSONALIZADOS
+   ============================================================ */
+
+.btn-abrl {
+  background-color: var(--abrl-naranja) !important;
+  border-color: var(--abrl-naranja) !important;
+  color: white !important;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  padding: 10px 20px;
+}
+
+.btn-abrl:hover {
+  background-color: #e64a19 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4);
+}
+
+.btn-abrl-outline {
+  color: var(--abrl-naranja) !important;
+  border: 2px solid var(--abrl-naranja) !important;
+  background: transparent !important;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.card-admin {
+  border-left: 5px solid var(--abrl-naranja);
+  border-radius: 12px;
+  background-color: var(--bg);
+  box-shadow: var(--shadow);
+}
+
+/* ============================================================
+   SEGURIDAD Y PROTECCIÓN DE CONTENIDO
+   ============================================================ */
+
+/* Bloquea la selección y el arrastre de imágenes en la previsualización */
+.preview-container {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.preview-container img {
+  pointer-events: none; /* Evita que se pueda interactuar con la imagen */
+}
+
+/* Marca de Agua para Protección de Previsualización */
+.watermark-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Ajuste para Marca de Agua con Imagen SVG */
+.watermark-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.15; /* Controla la transparencia aquí */
+}
+
+.watermark-img {
+  width: 80px; /* Ajusta el tamaño del SVG según prefieras */
+  height: auto;
+  transform: rotate(-30deg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: auto;
+}

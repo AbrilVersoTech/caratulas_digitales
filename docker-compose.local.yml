@@ -1,0 +1,41 @@
+services:
+  caratulasdigitales:
+    build: .
+    container_name: caratulasdigitales-frontend-local
+    ports:
+      - "3000:80"
+    depends_on:
+      - caratulasdigitales-backend
+
+  caratulasdigitales-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: caratulasdigitales-backend-local
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_HOST=caratulasdigitales-db
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=CARATULAS_SISTEMA
+      - DB_PORT=3306
+    depends_on:
+      - caratulasdigitales-db
+
+  caratulasdigitales-db:
+    image: mysql:8.0
+    container_name: caratulasdigitales-mysql-local
+    restart: always
+    command: ["mysqld", "--lower-case-table-names=1"] # <--- Actualizado con el formato y guiones correctos
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: CARATULAS_SISTEMA
+    ports:
+      - "3307:3306"
+    volumes:
+      - database_caratulas_local:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+
+volumes:
+  database_caratulas_local:
