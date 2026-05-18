@@ -43,6 +43,15 @@ const dividirEnLineas = (texto) => {
         palabras.slice(Math.ceil(2 * palabras.length / 3)).join(" ")
     ];
 };
+const escaparSvg = (valor = '') => String(valor)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
+const FUENTE_TITULO_SVG = "'SuperBubble', 'Super Bubble', 'Arial Black', 'DejaVu Sans', sans-serif";
+const FUENTE_SUPER_BUBBLE_URL = 'file://' + path.join(__dirname, 'public', 'fonts', 'Super Bubble.ttf').replace(/\\/g, '/').replace(/ /g, '%20');
 
 // ============================================================
 // RUTA DE SEGURIDAD: VERIFICAR Y QUEMAR CÓDIGO
@@ -80,8 +89,6 @@ app.get('/api/descargar-pack/:idPais/:nivel', async (req, res) => {
 
         if (filas.length === 0) return res.status(404).send("Paquete no encontrado.");
 
-        const fSuperBubbleBase64 = fs.readFileSync(path.join(__dirname, 'public', 'fonts', 'Super Bubble.ttf')).toString('base64');
-
         res.attachment(`${nombrePaisStr}-${nivel}_AbrlVerso.zip`);
         const archivoZip = archiver('zip', { zlib: { level: 9 } });
         archivoZip.pipe(res);
@@ -94,18 +101,18 @@ app.get('/api/descargar-pack/:idPais/:nivel', async (req, res) => {
                 
                 const lineas = dividirEnLineas(fila.NOMBRE_MATERIA);
                 const maxChars = Math.max(...lineas.map(l => l.length));
-                const fontSize = Math.min(Math.floor((width * 0.90) / (maxChars * 0.65)), 145);
+                const fontSize = Math.min(Math.floor((width * 0.78) / (maxChars * 0.95)), 105);
 
                 const svgTexto = `
                 <svg width="${width}" height="${height}">
                     <defs>
                         <style>
-                            @font-face { font-family: 'Super Bubble'; src: url('data:font/ttf;base64,${fSuperBubbleBase64}') format('truetype'); }
-                            .t { fill: white; font-family: 'Super Bubble'; font-size: ${fontSize}px; stroke: #1c2841; stroke-width: 14px; paint-order: stroke fill; font-weight: bold; }
+                            @font-face { font-family: 'SuperBubble'; src: url('${FUENTE_SUPER_BUBBLE_URL}') format('truetype'); }
+                            .t { fill: white; font-family: ${FUENTE_TITULO_SVG}; font-size: ${fontSize}px; stroke: #1c2841; stroke-width: 14px; paint-order: stroke fill; font-weight: bold; }
                         </style>
                     </defs>
-                    <text x="50%" y="${fontSize + 20}" text-anchor="middle" class="t">
-                        ${lineas.map((l, i) => `<tspan x="50%" dy="${i === 0 ? '0' : '1.05em'}">${l}</tspan>`).join('')}
+                    <text x="50%" y="${fontSize + 55}" text-anchor="middle" class="t">
+                        ${lineas.map((l, i) => `<tspan x="50%" dy="${i === 0 ? '0' : '1.05em'}">${escaparSvg(l)}</tspan>`).join('')}
                     </text>
                 </svg>`;
 
@@ -121,20 +128,19 @@ app.get('/api/descargar-pack/:idPais/:nivel', async (req, res) => {
 // ENDPOINT PRO: TÍTULO, ETIQUETAS Y DATOS EN SUPER BUBBLE
 // ============================================================
 app.post('/api/descargar-pack-pro', async (req, res) => {
-    const { idPais, nivel, nombre, grado } = req.body;
+    const { idPais, nivel, nombre, grado, tierComercial } = req.body;
     try {
         const [infoPais] = await pool.query('SELECT NOMBRE_PAIS FROM paises_base WHERE ID_PAIS = ?', [idPais]);
         const nombrePaisStr = infoPais.length > 0 ? infoPais[0].NOMBRE_PAIS : "Pais";
+        const nivelesDescarga = [nivel];
 
         const [filas] = await pool.query(
-            `SELECT M.NOMBRE_MATERIA, R.RUTA_ARCHIVO FROM materias_sistema M
+            `SELECT M.NOMBRE_MATERIA, M.NIVEL_EDUCATIVO, R.RUTA_ARCHIVO FROM materias_sistema M
              JOIN recursos_arte R ON M.ID_MATERIA = R.ID_MATERIA
-             WHERE M.ID_PAIS = ? AND M.NIVEL_EDUCATIVO = ?`, [idPais, nivel]
+             WHERE M.ID_PAIS = ? AND M.NIVEL_EDUCATIVO IN (?)`, [idPais, nivelesDescarga]
         );
 
         if (filas.length === 0) return res.status(404).send("Paquete no encontrado.");
-
-        const fSuperBubbleBase64 = fs.readFileSync(path.join(__dirname, 'public', 'fonts', 'Super Bubble.ttf')).toString('base64');
 
         res.attachment(`${nombrePaisStr}-${nivel}_PROAbrilVerso.zip`);
         const archivoZip = archiver('zip', { zlib: { level: 9 } });
@@ -148,7 +154,7 @@ app.post('/api/descargar-pack-pro', async (req, res) => {
 
                 const lineas = dividirEnLineas(fila.NOMBRE_MATERIA);
                 const maxChars = Math.max(...lineas.map(l => l.length));
-                const fontSizeT = Math.min(Math.floor((width * 0.90) / (maxChars * 0.65)), 145);
+                const fontSizeT = Math.min(Math.floor((width * 0.78) / (maxChars * 0.95)), 105);
 
                 const fontSizeE = Math.min(Math.floor((width * 0.85) / (Math.max(nombre.length, 10) * 0.65)), 85);
                 const fontSizeG = Math.min(Math.floor((width * 0.85) / (Math.max(grado.length, 10) * 0.65)), 80);
@@ -157,21 +163,21 @@ app.post('/api/descargar-pack-pro', async (req, res) => {
                 <svg width="${width}" height="${height}">
                     <defs>
                         <style>
-                            @font-face { font-family: 'Super Bubble'; src: url('data:font/ttf;base64,${fSuperBubbleBase64}') format('truetype'); }
-                            .base-f { font-family: 'Super Bubble'; font-weight: bold; }
+                            @font-face { font-family: 'SuperBubble'; src: url('${FUENTE_SUPER_BUBBLE_URL}') format('truetype'); }
+                            .base-f { font-family: ${FUENTE_TITULO_SVG}; font-weight: bold; }
                             .titulo { fill: white; font-size: ${fontSizeT}px; stroke: #1c2841; stroke-width: 14px; paint-order: stroke fill; }
                             .label { fill: #ff5722; font-size: 32px; stroke: white; stroke-width: 6px; paint-order: stroke fill; }
                             .valor { fill: white; font-size: ${fontSizeE}px; stroke: #1c2841; stroke-width: 10px; paint-order: stroke fill; }
                             .valor-g { fill: white; font-size: ${fontSizeG}px; stroke: #1c2841; stroke-width: 10px; paint-order: stroke fill; }
                         </style>
                     </defs>
-                    <text x="50%" y="${fontSizeT + 15}" text-anchor="middle" class="base-f titulo">
-                        ${lineas.map((l, i) => `<tspan x="50%" dy="${i === 0 ? '0' : '1.1em'}">${l}</tspan>`).join('')}
+                    <text x="50%" y="${fontSizeT + 55}" text-anchor="middle" class="base-f titulo">
+                        ${lineas.map((l, i) => `<tspan x="50%" dy="${i === 0 ? '0' : '1.1em'}">${escaparSvg(l)}</tspan>`).join('')}
                     </text>
                     <text x="80" y="${height - 230}" class="base-f label">ESTUDIANTE:</text>
-                    <text x="80" y="${height - 150}" class="base-f valor">${nombre.toUpperCase()}</text>
+                    <text x="80" y="${height - 150}" class="base-f valor">${escaparSvg(nombre.toUpperCase())}</text>
                     <text x="80" y="${height - 95}" class="base-f label">CURSO / GRADO:</text>
-                    <text x="80" y="${height - 25}" class="base-f valor-g">${grado.toUpperCase()}</text>
+                    <text x="80" y="${height - 25}" class="base-f valor-g">${escaparSvg(grado.toUpperCase())}</text>
                 </svg>`;
 
                 const buffer = await imagenBase.composite([{ input: Buffer.from(svgOverlay), top: 0, left: 0 }]).webp({ quality: 100 }).toBuffer();

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'; 
 import { useSelector, useDispatch } from 'react-redux';
-import axios from 'axios'; // Se añade axios para la descarga
 import { Container, Row, Col, Form, Button, Card, Spinner } from 'react-bootstrap';
 import { 
   actualizarDatos, 
@@ -36,6 +35,7 @@ const PanelInicio = () => {
   const [estadoCodigo, setEstadoCodigo] = useState('idle'); // idle, loading, valid, invalid
   const [mensajeCodigo, setMensajeCodigo] = useState('');
   const [generando, setGenerando] = useState(false); // Estado para la descarga
+  const [contadorDescargas, setContadorDescargas] = useState(0);
 
   // --- ESTADOS PARA TIERS DE COSTO COMERCIAL ---
   const [opcionDosDolares, setOpcionDosDolares] = useState(false);
@@ -86,6 +86,19 @@ const PanelInicio = () => {
     setCodigoAcceso(e.target.value.toUpperCase());
     setEstadoCodigo('idle');
     setMensajeCodigo('');
+    setContadorDescargas(0);
+  };
+
+  const limpiarFormularioDescarga = (mensajeFinal = '') => {
+    setCodigoAcceso('');
+    setEstadoCodigo('idle');
+    setOpcionDosDolares(false);
+    setOpcionTresDolares(false);
+    setGenerando(false);
+    setContadorDescargas(0);
+    despacho(actualizarDatos({ campo: 'nombre', valor: '' }));
+    despacho(actualizarDatos({ campo: 'grado', valor: '' }));
+    setMensajeCodigo(mensajeFinal);
   };
 
   const verificarCodigoBD = async () => {
@@ -102,6 +115,7 @@ const PanelInicio = () => {
 
       if (data.valido) {
         setEstadoCodigo('valid');
+        setContadorDescargas(0);
         setMensajeCodigo('✅ Código activado. Diseño listo para exportar.');
       } else {
         setEstadoCodigo('invalid');
@@ -117,41 +131,68 @@ const PanelInicio = () => {
   const manejarCheckDosDolares = () => {
     setOpcionDosDolares(!opcionDosDolares);
     setOpcionTresDolares(false);
+    setContadorDescargas(0);
   };
 
   const manejarCheckTresDolares = () => {
     setOpcionTresDolares(!opcionTresDolares);
     setOpcionDosDolares(false);
+    setContadorDescargas(0);
   };
+
+  const limiteDescargas = opcionDosDolares ? 1 : opcionTresDolares ? 2 : 0;
+  const descargaBloqueada = limiteDescargas > 0 && contadorDescargas >= limiteDescargas;
 
   // --- FUNCIÓN PARA GENERACIÓN REAL (DESCARGA ZIP PRO) ---
   const manejarGenerarCaratula = async () => {
-    if (estadoCodigo !== 'valid' || (!opcionDosDolares && !opcionTresDolares)) return;
+    const nombre = datosEstudiante.nombre.trim();
+    const grado = datosEstudiante.grado.trim();
+
+    if (estadoCodigo !== 'valid' || (!opcionDosDolares && !opcionTresDolares) || !nombre || !grado || generando || descargaBloqueada) return;
+
     setGenerando(true);
     
     try {
-        const respuesta = await axios({
-            url: 'http://localhost:5000/api/descargar-pack-pro',
-            method: 'POST',
-            data: {
-                idPais: paisSeleccionado,
-                nivel: nivelSeleccionado,
-                nombre: datosEstudiante.nombre,
-                grado: datosEstudiante.grado,
-                tierComercial: opcionDosDolares ? 'simple' : 'completo'
-            },
-            responseType: 'blob' 
+        const tierComercial = opcionDosDolares ? 'simple' : 'completo';
+        const limiteActual = tierComercial === 'simple' ? 1 : 2;
+        const respuesta = await fetch('http://localhost:5000/api/descargar-pack-pro', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            idPais: paisSeleccionado,
+            nivel: nivelSeleccionado,
+            nombre,
+            grado,
+            tierComercial
+          })
         });
 
-        const url = window.URL.createObjectURL(new Blob([respuesta.data]));
+        if (!respuesta.ok) throw new Error('No se pudo generar el archivo comprimido.');
+
+        const blob = await respuesta.blob();
+        const disposition = respuesta.headers.get('content-disposition') || '';
+        const match = disposition.match(/filename="?([^";]+)"?/i);
+        const infoPais = paises.find(p => p.ID_PAIS === parseInt(paisSeleccionado)) || { NOMBRE_PAIS: 'Pais' };
+        const nombreArchivo = match?.[1] || `${infoPais.NOMBRE_PAIS}-${nivelSeleccionado}_Personal.zip`;
+        const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        
-        const infoPais = paises.find(p => p.ID_PAIS === parseInt(paisSeleccionado)) || { NOMBRE_PAIS: 'Pais' };
-        link.setAttribute('download', `${infoPais.NOMBRE_PAIS}-${nivelSeleccionado}_Personal.zip`);
+        link.setAttribute('download', nombreArchivo);
         document.body.appendChild(link);
         link.click();
         link.remove();
+        window.URL.revokeObjectURL(url);
+
+        const nuevoContador = contadorDescargas + 1;
+        setContadorDescargas(nuevoContador);
+
+        if (tierComercial === 'simple' && nuevoContador >= limiteActual) {
+          limpiarFormularioDescarga('Descarga exitosa. Para continuar, ingrese un nuevo código de activación.');
+        } else if (tierComercial === 'completo' && nuevoContador >= limiteActual) {
+          limpiarFormularioDescarga('Descargas completadas. Si desea continuar, ingrese un nuevo código de activación.');
+        } else {
+          setMensajeCodigo(`✅ Descarga ${nuevoContador} de ${limiteActual} completada. Puede descargar nuevamente el nivel actual o cambiar país/nivel para la descarga restante.`);
+        }
     } catch (error) {
         console.error("Error en descarga:", error);
         alert("Error al generar el archivo comprimido.");
@@ -176,6 +217,7 @@ const PanelInicio = () => {
           @font-face {
             font-family: 'Super Bubble';
             src: url('/fonts/Super Bubble.ttf') format('truetype');
+            font-display: swap;
           }
 
           @keyframes icon-bounce { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-10px) scale(1.2); } }
@@ -408,7 +450,7 @@ const PanelInicio = () => {
                 <Button 
                   onClick={manejarGenerarCaratula}
                   className="btn-abrl w-100 py-3 shadow-lg"
-                  disabled={estadoCodigo !== 'valid' || generando || (!opcionDosDolares && !opcionTresDolares)}
+                  disabled={estadoCodigo !== 'valid' || generando || (!opcionDosDolares && !opcionTresDolares) || !datosEstudiante.nombre.trim() || !datosEstudiante.grado.trim() || descargaBloqueada}
                 >
                   {generando ? <Spinner size="sm" animation="border" /> : 'GENERAR PACK 📦 🎨'}
                 </Button>

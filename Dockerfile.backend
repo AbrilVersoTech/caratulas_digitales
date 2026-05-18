@@ -1,7 +1,11 @@
 FROM node:20-alpine
 WORKDIR /app
+RUN apk add --no-cache fontconfig ttf-dejavu
 COPY package*.json ./
 RUN npm install
 COPY . .
+RUN mkdir -p /usr/share/fonts/truetype/abrlverso \
+    && cp "/app/public/fonts/Super Bubble.ttf" /usr/share/fonts/truetype/abrlverso/SuperBubble.ttf \
+    && fc-cache -f
 EXPOSE 5000
 CMD ["node", "servidor.js"]

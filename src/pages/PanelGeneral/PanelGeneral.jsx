@@ -38,6 +38,8 @@ const PanelGeneral = () => {
   const [codigoAcceso, setCodigoAcceso] = useState('');
   const [estadoCodigo, setEstadoCodigo] = useState('idle'); // idle, loading, valid, invalid
   const [mensajeCodigo, setMensajeCodigo] = useState('');
+  const [descargandoPack, setDescargandoPack] = useState(false);
+  const [contadorDescargas, setContadorDescargas] = useState(0);
 
   // --- ESTADOS PARA TIERS DE COSTO COMERCIAL ---
   const [opcionDosDolares, setOpcionDosDolares] = useState(false);
@@ -78,6 +80,17 @@ const PanelGeneral = () => {
     setCodigoAcceso(e.target.value.toUpperCase());
     setEstadoCodigo('idle');
     setMensajeCodigo('');
+    setContadorDescargas(0);
+  };
+
+  const limpiarFormularioDescarga = (mensajeFinal = '') => {
+    setCodigoAcceso('');
+    setEstadoCodigo('idle');
+    setOpcionDosDolares(false);
+    setOpcionTresDolares(false);
+    setDescargandoPack(false);
+    setContadorDescargas(0);
+    setMensajeCodigo(mensajeFinal);
   };
 
   const verificarCodigoBD = async () => {
@@ -94,6 +107,7 @@ const PanelGeneral = () => {
 
       if (data.valido) {
         setEstadoCodigo('valid');
+        setContadorDescargas(0);
         setMensajeCodigo('✅ Código validado. Paquete desbloqueado.');
       } else {
         setEstadoCodigo('invalid');
@@ -109,18 +123,57 @@ const PanelGeneral = () => {
   const manejarCheckDosDolares = () => {
     setOpcionDosDolares(!opcionDosDolares);
     setOpcionTresDolares(false);
+    setContadorDescargas(0);
   };
 
   const manejarCheckTresDolares = () => {
     setOpcionTresDolares(!opcionTresDolares);
     setOpcionDosDolares(false);
+    setContadorDescargas(0);
   };
 
+  const limiteDescargas = opcionDosDolares ? 1 : opcionTresDolares ? 2 : 0;
+  const descargaBloqueada = limiteDescargas > 0 && contadorDescargas >= limiteDescargas;
+
   // --- FUNCIÓN PARA DESCARGAR EL ZIP ---
-  const manejarDescargaMaster = () => {
-    if (estadoCodigo === 'valid' && (opcionDosDolares || opcionTresDolares)) {
-      const tierSelection = opcionDosDolares ? 'simple' : 'completo';
-      window.location.href = `http://localhost:5000/api/descargar-pack/${paisSeleccionado}/${nivelSeleccionado}?tier=${tierSelection}`;
+  const manejarDescargaMaster = async () => {
+    if (estadoCodigo !== 'valid' || (!opcionDosDolares && !opcionTresDolares) || descargandoPack || descargaBloqueada) return;
+
+    const tierSelection = opcionDosDolares ? 'simple' : 'completo';
+    const limiteActual = tierSelection === 'simple' ? 1 : 2;
+    setDescargandoPack(true);
+
+    try {
+      const respuesta = await fetch(`http://localhost:5000/api/descargar-pack/${paisSeleccionado}/${encodeURIComponent(nivelSeleccionado)}?tier=${tierSelection}`);
+      if (!respuesta.ok) throw new Error('No se pudo generar el paquete.');
+
+      const blob = await respuesta.blob();
+      const disposition = respuesta.headers.get('content-disposition') || '';
+      const match = disposition.match(/filename="?([^";]+)"?/i);
+      const nombreArchivo = match?.[1] || `AbrlVerso-${nivelSeleccionado}-${tierSelection}.zip`;
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = nombreArchivo;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      URL.revokeObjectURL(url);
+
+      const nuevoContador = contadorDescargas + 1;
+      setContadorDescargas(nuevoContador);
+
+      if (tierSelection === 'simple' && nuevoContador >= limiteActual) {
+        limpiarFormularioDescarga('Descarga exitosa. Para continuar, ingrese un nuevo código de activación.');
+      } else if (tierSelection === 'completo' && nuevoContador >= limiteActual) {
+        limpiarFormularioDescarga('Descargas completadas. Si desea continuar, ingrese un nuevo código de activación.');
+      } else {
+        setMensajeCodigo(`✅ Descarga ${nuevoContador} de ${limiteActual} completada. Puede descargar nuevamente el nivel actual o cambiar país/nivel para la descarga restante.`);
+      }
+    } catch (error) {
+      setMensajeCodigo('❌ No se pudo generar la descarga. Intente nuevamente.');
+    } finally {
+      setDescargandoPack(false);
     }
   };
 
@@ -289,9 +342,9 @@ const PanelGeneral = () => {
                 <Button 
                   onClick={manejarDescargaMaster} 
                   className="btn-abrl w-100 py-3 shadow-lg" 
-                  disabled={estadoCodigo !== 'valid' || (!opcionDosDolares && !opcionTresDolares)}
+                  disabled={estadoCodigo !== 'valid' || (!opcionDosDolares && !opcionTresDolares) || descargandoPack || descargaBloqueada}
                 >
-                  GENERAR PACK 📦
+                  {descargandoPack ? 'GENERANDO...' : 'GENERAR PACK 📦'}
                 </Button>
 
                 {/* --- BLOQUE DE CONTACTO: USANDO SU ARCHIVO whatsappLogo.svg --- */}
